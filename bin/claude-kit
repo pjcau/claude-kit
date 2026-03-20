@@ -50,7 +50,7 @@ prompt_yn() {
     local prompt="$1" default="${2:-y}"
     read -rp "$(echo -e "  ${prompt} [${default}] ")" yn
     yn="${yn:-$default}"
-    [[ "${yn,,}" == "y" ]]
+    [[ "$(echo "$yn" | tr '[:upper:]' '[:lower:]')" == "y" ]]
 }
 
 # ─── Commands ─────────────────────────────────────────────

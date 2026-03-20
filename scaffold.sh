@@ -110,7 +110,7 @@ if [[ "$skill_choice" == "a" ]]; then
 else
     for skill in "${AVAILABLE_SKILLS[@]}"; do
         read -rp "  Include ${skill}? [Y/n] " yn
-        if [[ "${yn,,}" != "n" ]]; then
+        if [[ "$(echo "$yn" | tr '[:upper:]' '[:lower:]')" != "n" ]]; then
             SELECTED_SKILLS+=("$skill")
         fi
     done
@@ -135,7 +135,7 @@ if [[ "$agent_choice" == "a" ]]; then
 else
     for agent in "${AVAILABLE_AGENTS[@]}"; do
         read -rp "  Include ${agent}? [Y/n] " yn
-        if [[ "${yn,,}" != "n" ]]; then
+        if [[ "$(echo "$yn" | tr '[:upper:]' '[:lower:]')" != "n" ]]; then
             SELECTED_AGENTS+=("$agent")
         fi
     done
