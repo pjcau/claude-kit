@@ -5,7 +5,7 @@ class ClaudeKit < Formula
   desc "Scaffold projects with Claude Code skills, agents & hooks"
   homepage "https://github.com/pjcau/claude-kit"
   url "https://github.com/pjcau/claude-kit/archive/refs/tags/v0.1.1.tar.gz"
-  sha256 "319647bd7bfbe826a51a8eeb5fbb0f48e22653df3932f01f36c2b0c5881abc6c"
+  sha256 "2f0f94257fee71bd8b688329be9f9a0f9d71147f29784c1f2a7f3f1a49c28c5c"
   license "MIT"
 
   depends_on "git"
