@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build .deb package
+        run: ./packaging/deb/build-deb.sh "${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*.deb
+
+      - name: Update Homebrew formula
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG_NAME="${GITHUB_REF_NAME}"
+          TARBALL_URL="https://github.com/${{ github.repository }}/archive/refs/tags/${TAG_NAME}.tar.gz"
+
+          # Download tarball and compute SHA256
+          curl -sL "$TARBALL_URL" -o release.tar.gz
+          SHA256=$(sha256sum release.tar.gz | awk '{print $1}')
+          rm release.tar.gz
+
+          echo "Version: $VERSION"
+          echo "SHA256:  $SHA256"
+
+          # Update the formula file in-repo
+          sed -i "s|url \".*\"|url \"${TARBALL_URL}\"|" homebrew/claude-kit.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" homebrew/claude-kit.rb
+
+          # Commit and push formula update back to main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git add homebrew/claude-kit.rb
+          git diff --cached --quiet || git commit -m "Update Homebrew formula to v${VERSION}"
+          git push origin main

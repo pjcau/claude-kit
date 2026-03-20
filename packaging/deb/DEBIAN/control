@@ -1,0 +1,11 @@
+Package: claude-kit
+Version: __VERSION__
+Section: devel
+Priority: optional
+Architecture: all
+Depends: git, bash (>= 3.2)
+Maintainer: Pierre Johnny Cau <pjcau@users.noreply.github.com>
+Homepage: https://github.com/pjcau/claude-kit
+Description: Scaffold projects with Claude Code skills, agents & hooks
+ A portable collection of Claude Code skills, agents, and project templates.
+ Designed to be included as a git submodule in any project.

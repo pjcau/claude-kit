@@ -227,6 +227,11 @@ cmd_init() {
         fi
     done
 
+    # Always include submodule sync hook (auto-commits changes back to claude-kit)
+    if [[ -f ".claude-kit/hooks/post-submodule-sync.sh" ]]; then
+        ln -sf "../../.claude-kit/hooks/post-submodule-sync.sh" ".claude/hooks/post-submodule-sync.sh"
+    fi
+
     ok "Skills, agents, hooks linked from submodule"
 
     # ── Generate CLAUDE.md ──
@@ -258,15 +263,40 @@ cmd_init() {
     # ── Generate settings.json with hooks ──
     if (( ${#selected_hooks[@]} > 0 )); then
         cp ".claude-kit/settings.json" ".claude/settings.json" 2>/dev/null || true
-        # Update hook paths to point to symlinks
-        if [[ -f ".claude/settings.json" ]]; then
-            sed -i '' 's|\./.claude/hooks/|./.claude/hooks/|g' ".claude/settings.json" 2>/dev/null || true
-        fi
         ok "settings.json with hooks configured"
     else
+        # Even with no user-selected hooks, include submodule sync hook
         mkdir -p .claude
-        echo '{ "permissions": { "allow": [], "deny": [] } }' > .claude/settings.json
+        cat > .claude/settings.json << 'SETTINGS'
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.claude/hooks/post-submodule-sync.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.claude/hooks/post-submodule-sync.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+SETTINGS
     fi
+    ok "Submodule sync hook always active"
 
     # ── .gitignore ──
     cat > .gitignore << 'GITIGNORE'
@@ -422,6 +452,8 @@ cmd_list() {
     local base=""
     if [[ -d .claude-kit ]]; then
         base=".claude-kit"
+    elif [[ -d "/usr/share/claude-kit" ]]; then
+        base="/usr/share/claude-kit"
     elif [[ -d "$(brew --prefix 2>/dev/null)/share/claude-kit" ]]; then
         base="$(brew --prefix)/share/claude-kit"
     else
