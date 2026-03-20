@@ -26,9 +26,9 @@ prompt_choice() {
     shift
     local options=("$@")
 
-    echo -e "${BOLD}${prompt}${NC}"
+    echo -e "${BOLD}${prompt}${NC}" >&2
     for i in "${!options[@]}"; do
-        echo -e "  ${GREEN}$((i+1)))${NC} ${options[$i]}"
+        echo -e "  ${GREEN}$((i+1)))${NC} ${options[$i]}" >&2
     done
 
     while true; do
@@ -37,18 +37,18 @@ prompt_choice() {
             echo "${options[$((choice-1))]}"
             return
         fi
-        echo -e "  ${RED}Invalid choice. Pick 1-${#options[@]}${NC}"
+        echo -e "  ${RED}Invalid choice. Pick 1-${#options[@]}${NC}" >&2
     done
 }
 
 prompt_text() {
     local prompt="$1"
     local default="${2:-}"
-    echo -en "${BOLD}${prompt}${NC}"
+    echo -en "${BOLD}${prompt}${NC}" >&2
     if [[ -n "$default" ]]; then
-        echo -en " ${BLUE}[$default]${NC}"
+        echo -en " ${BLUE}[$default]${NC}" >&2
     fi
-    echo ""
+    echo "" >&2
     read -rp "  > " value
     echo "${value:-$default}"
 }
