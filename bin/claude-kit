@@ -1,0 +1,485 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="0.1.0"
+REPO_URL="https://github.com/pjcau/claude-kit.git"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+# ─── Helpers ──────────────────────────────────────────────
+
+die()  { echo -e "${RED}Error: $*${NC}" >&2; exit 1; }
+info() { echo -e "${CYAN}$*${NC}"; }
+ok()   { echo -e "${GREEN}✓${NC} $*"; }
+
+prompt_choice() {
+    local prompt="$1"; shift
+    local options=("$@")
+    echo -e "\n${BOLD}${prompt}${NC}"
+    for i in "${!options[@]}"; do
+        echo -e "  ${GREEN}$((i+1)))${NC} ${options[$i]}"
+    done
+    while true; do
+        read -rp "  > " choice
+        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#options[@]} )); then
+            echo "${options[$((choice-1))]}"
+            return
+        fi
+        echo -e "  ${RED}Pick 1-${#options[@]}${NC}"
+    done
+}
+
+prompt_text() {
+    local prompt="$1" default="${2:-}"
+    echo -en "\n${BOLD}${prompt}${NC}"
+    [[ -n "$default" ]] && echo -en " ${DIM}[$default]${NC}"
+    echo ""
+    read -rp "  > " value
+    echo "${value:-$default}"
+}
+
+prompt_yn() {
+    local prompt="$1" default="${2:-y}"
+    read -rp "$(echo -e "  ${prompt} [${default}] ")" yn
+    yn="${yn:-$default}"
+    [[ "${yn,,}" == "y" ]]
+}
+
+# ─── Commands ─────────────────────────────────────────────
+
+cmd_init() {
+    echo -e "${BOLD}${CYAN}"
+    echo "  ╔═══════════════════════════════════╗"
+    echo "  ║        claude-kit  init            ║"
+    echo "  ╚═══════════════════════════════════╝"
+    echo -e "${NC}"
+
+    # Project name (from arg or prompt)
+    local project_name="${1:-}"
+    if [[ -z "$project_name" ]]; then
+        project_name=$(prompt_text "Project name?")
+    fi
+    [[ -z "$project_name" ]] && die "Project name is required"
+
+    # Language
+    local lang
+    lang=$(prompt_choice "Language?" "Rust" "TypeScript" "Python" "Go")
+
+    # Project type
+    local project_type template
+    case "$lang" in
+        Rust)
+            project_type=$(prompt_choice "Project type?" "CLI (clap)" "API (axum)" "Library")
+            template="rust"
+            ;;
+        TypeScript)
+            project_type=$(prompt_choice "Project type?" "React (Vite)" "Node.js API" "CLI" "Library")
+            case "$project_type" in
+                "React (Vite)") template="typescript-react" ;;
+                *) template="typescript-node" ;;
+            esac
+            ;;
+        Python)
+            project_type=$(prompt_choice "Project type?" "FastAPI" "CLI (click/typer)" "Library" "Script")
+            case "$project_type" in
+                FastAPI) template="python-fastapi" ;;
+                *) template="python" ;;
+            esac
+            ;;
+        Go)
+            project_type=$(prompt_choice "Project type?" "API" "CLI" "Library")
+            template="go"
+            ;;
+    esac
+
+    # Clone submodule first (to a temp dir) so we can list skills/agents
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    info "\nFetching claude-kit catalog..."
+    git clone --depth 1 -q "$REPO_URL" "$tmpdir" 2>/dev/null || die "Cannot reach $REPO_URL"
+
+    # ── Select skills ──
+    echo -e "\n${BOLD}Skills${NC}"
+    local -a available_skills=() selected_skills=()
+    for f in "$tmpdir"/skills/*.md; do
+        [[ -f "$f" ]] && available_skills+=("$(basename "$f" .md)")
+    done
+    # Also list skill directories (multi-file skills)
+    for d in "$tmpdir"/skills/*/; do
+        [[ -d "$d" ]] && available_skills+=("$(basename "$d")")
+    done
+
+    if (( ${#available_skills[@]} > 0 )); then
+        echo -e "  ${DIM}Available: ${available_skills[*]}${NC}"
+        echo -e "  ${GREEN}a)${NC} All   ${GREEN}s)${NC} Select individually   ${GREEN}n)${NC} None"
+        read -rp "  > " sc
+        case "$sc" in
+            a) selected_skills=("${available_skills[@]}") ;;
+            n) ;;
+            *)
+                for skill in "${available_skills[@]}"; do
+                    prompt_yn "Include skill ${BOLD}${skill}${NC}?" "y" && selected_skills+=("$skill")
+                done
+                ;;
+        esac
+    fi
+
+    # ── Select agents ──
+    echo -e "\n${BOLD}Agents${NC}"
+    local -a available_agents=() selected_agents=()
+    for f in "$tmpdir"/agents/*.md; do
+        [[ -f "$f" ]] && available_agents+=("$(basename "$f" .md)")
+    done
+
+    if (( ${#available_agents[@]} > 0 )); then
+        echo -e "  ${DIM}Available: ${available_agents[*]}${NC}"
+        echo -e "  ${GREEN}a)${NC} All   ${GREEN}s)${NC} Select individually   ${GREEN}n)${NC} None"
+        read -rp "  > " ac
+        case "$ac" in
+            a) selected_agents=("${available_agents[@]}") ;;
+            n) ;;
+            *)
+                for agent in "${available_agents[@]}"; do
+                    prompt_yn "Include agent ${BOLD}${agent}${NC}?" "y" && selected_agents+=("$agent")
+                done
+                ;;
+        esac
+    fi
+
+    # ── Select hooks ──
+    echo -e "\n${BOLD}Hooks${NC}"
+    local -a available_hooks=() selected_hooks=()
+    for f in "$tmpdir"/hooks/*.sh; do
+        [[ -f "$f" ]] && available_hooks+=("$(basename "$f" .sh)")
+    done
+
+    if (( ${#available_hooks[@]} > 0 )); then
+        echo -e "  ${DIM}Available: ${available_hooks[*]}${NC}"
+        echo -e "  ${GREEN}a)${NC} All   ${GREEN}s)${NC} Select individually   ${GREEN}n)${NC} None"
+        read -rp "  > " hc
+        case "$hc" in
+            a) selected_hooks=("${available_hooks[@]}") ;;
+            n) ;;
+            *)
+                for hook in "${available_hooks[@]}"; do
+                    prompt_yn "Include hook ${BOLD}${hook}${NC}?" "y" && selected_hooks+=("$hook")
+                done
+                ;;
+        esac
+    fi
+
+    rm -rf "$tmpdir"
+
+    # ── Summary ──
+    echo -e "\n${BOLD}${YELLOW}Summary${NC}"
+    echo -e "  Project:  ${BOLD}$project_name${NC}"
+    echo -e "  Language: $lang ($project_type)"
+    echo -e "  Skills:   ${selected_skills[*]:-none}"
+    echo -e "  Agents:   ${selected_agents[*]:-none}"
+    echo -e "  Hooks:    ${selected_hooks[*]:-none}"
+    echo ""
+    prompt_yn "${BOLD}Proceed?${NC}" "y" || { echo "Aborted."; exit 0; }
+
+    # ── Create project ──
+    local target_dir
+    target_dir="$(pwd)/$project_name"
+    mkdir -p "$target_dir"
+    cd "$target_dir"
+
+    git init -q
+    ok "Git repo initialized"
+
+    # Add claude-kit as submodule
+    git submodule add -q "$REPO_URL" .claude-kit 2>/dev/null && ok "Submodule .claude-kit added" \
+        || echo -e "  ${YELLOW}⚠ Could not add submodule — add manually later${NC}"
+
+    # Create .claude directory structure
+    mkdir -p .claude/skills .claude/agents .claude/hooks
+
+    # Symlink selected skills (reference from submodule)
+    for skill in "${selected_skills[@]}"; do
+        if [[ -d ".claude-kit/skills/$skill" ]]; then
+            ln -sf "../../.claude-kit/skills/$skill" ".claude/skills/$skill"
+        elif [[ -f ".claude-kit/skills/${skill}.md" ]]; then
+            ln -sf "../../.claude-kit/skills/${skill}.md" ".claude/skills/${skill}.md"
+        fi
+    done
+
+    # Symlink selected agents
+    for agent in "${selected_agents[@]}"; do
+        if [[ -f ".claude-kit/agents/${agent}.md" ]]; then
+            ln -sf "../../.claude-kit/agents/${agent}.md" ".claude/agents/${agent}.md"
+        fi
+    done
+
+    # Symlink selected hooks
+    for hook in "${selected_hooks[@]}"; do
+        if [[ -f ".claude-kit/hooks/${hook}.sh" ]]; then
+            ln -sf "../../.claude-kit/hooks/${hook}.sh" ".claude/hooks/${hook}.sh"
+        fi
+    done
+
+    ok "Skills, agents, hooks linked from submodule"
+
+    # ── Generate CLAUDE.md ──
+    {
+        if [[ -f ".claude-kit/templates/${template}.md" ]]; then
+            cat ".claude-kit/templates/${template}.md"
+        else
+            echo "# $project_name"
+        fi
+
+        echo ""
+        echo "## Skills"
+        for skill in "${selected_skills[@]}"; do
+            if [[ -d ".claude-kit/skills/$skill" ]]; then
+                echo "@.claude-kit/skills/$skill"
+            else
+                echo "@.claude-kit/skills/${skill}.md"
+            fi
+        done
+
+        echo ""
+        echo "## Agents"
+        for agent in "${selected_agents[@]}"; do
+            echo "@.claude-kit/agents/${agent}.md"
+        done
+    } > CLAUDE.md
+    ok "CLAUDE.md generated"
+
+    # ── Generate settings.json with hooks ──
+    if (( ${#selected_hooks[@]} > 0 )); then
+        cp ".claude-kit/settings.json" ".claude/settings.json" 2>/dev/null || true
+        # Update hook paths to point to symlinks
+        if [[ -f ".claude/settings.json" ]]; then
+            sed -i '' 's|\./.claude/hooks/|./.claude/hooks/|g' ".claude/settings.json" 2>/dev/null || true
+        fi
+        ok "settings.json with hooks configured"
+    else
+        mkdir -p .claude
+        echo '{ "permissions": { "allow": [], "deny": [] } }' > .claude/settings.json
+    fi
+
+    # ── .gitignore ──
+    cat > .gitignore << 'GITIGNORE'
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+.env
+.env.local
+GITIGNORE
+
+    # Language-specific scaffold
+    case "$lang" in
+        Rust)
+            cat >> .gitignore << 'GI'
+
+/target/
+Cargo.lock
+GI
+            cat > Cargo.toml << EOF
+[package]
+name = "$project_name"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+EOF
+            mkdir -p src
+            cat > src/main.rs << EOF
+fn main() {
+    println!("Hello from $project_name!");
+}
+EOF
+            ;;
+        TypeScript)
+            cat >> .gitignore << 'GI'
+
+node_modules/
+dist/
+*.tsbuildinfo
+GI
+            cat > package.json << EOF
+{
+  "name": "$project_name",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsup src/index.ts",
+    "test": "vitest"
+  }
+}
+EOF
+            cat > tsconfig.json << 'EOF'
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}
+EOF
+            mkdir -p src
+            echo "console.log('Hello from $project_name');" > src/index.ts
+            ;;
+        Python)
+            cat >> .gitignore << 'GI'
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
+GI
+            cat > pyproject.toml << EOF
+[project]
+name = "$project_name"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+EOF
+            mkdir -p "src/$project_name" tests
+            echo "" > "src/$project_name/__init__.py"
+            cat > "src/$project_name/main.py" << EOF
+def main():
+    print("Hello from $project_name")
+
+if __name__ == "__main__":
+    main()
+EOF
+            ;;
+        Go)
+            cat >> .gitignore << 'GI'
+
+/bin/
+/vendor/
+GI
+            cat > go.mod << EOF
+module github.com/pjcau/$project_name
+
+go 1.22
+EOF
+            mkdir -p "cmd/$project_name"
+            cat > "cmd/$project_name/main.go" << EOF
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello from $project_name")
+}
+EOF
+            ;;
+    esac
+    ok "Language scaffold ($lang) created"
+
+    # Initial commit
+    git add -A
+    git commit -q -m "Initial scaffold via claude-kit"
+    ok "Initial commit created"
+
+    echo -e "\n${BOLD}${GREEN}Done!${NC} Project ready at ${BLUE}${target_dir}${NC}"
+    echo -e "\n  ${CYAN}cd $project_name${NC}"
+    echo -e "  ${CYAN}claude${NC}  — start coding with skills loaded\n"
+}
+
+cmd_update() {
+    if [[ ! -f .claude-kit/.git ]] && [[ ! -d .claude-kit/.git ]]; then
+        die "Not in a claude-kit project (no .claude-kit submodule found)"
+    fi
+    info "Updating claude-kit submodule..."
+    git submodule update --remote .claude-kit
+    ok "claude-kit updated to latest"
+}
+
+cmd_list() {
+    # Works inside a project or standalone
+    local base=""
+    if [[ -d .claude-kit ]]; then
+        base=".claude-kit"
+    elif [[ -d "$(brew --prefix 2>/dev/null)/share/claude-kit" ]]; then
+        base="$(brew --prefix)/share/claude-kit"
+    else
+        info "Fetching catalog from GitHub..."
+        base=$(mktemp -d)
+        git clone --depth 1 -q "$REPO_URL" "$base" 2>/dev/null || die "Cannot reach $REPO_URL"
+        trap "rm -rf $base" EXIT
+    fi
+
+    echo -e "\n${BOLD}Skills${NC}"
+    for f in "$base"/skills/*.md; do
+        [[ -f "$f" ]] && echo -e "  ${GREEN}•${NC} $(basename "$f" .md)"
+    done
+    for d in "$base"/skills/*/; do
+        [[ -d "$d" ]] && echo -e "  ${GREEN}•${NC} $(basename "$d") ${DIM}(multi-file)${NC}"
+    done
+
+    echo -e "\n${BOLD}Agents${NC}"
+    for f in "$base"/agents/*.md; do
+        [[ -f "$f" ]] && echo -e "  ${BLUE}•${NC} $(basename "$f" .md)"
+    done
+
+    echo -e "\n${BOLD}Hooks${NC}"
+    for f in "$base"/hooks/*.sh; do
+        [[ -f "$f" ]] && echo -e "  ${YELLOW}•${NC} $(basename "$f" .sh)"
+    done
+
+    echo -e "\n${BOLD}Templates${NC}"
+    for f in "$base"/templates/*.md; do
+        [[ -f "$f" ]] && echo -e "  ${CYAN}•${NC} $(basename "$f" .md)"
+    done
+    echo ""
+}
+
+cmd_help() {
+    echo -e "${BOLD}claude-kit${NC} v${VERSION} — Scaffold projects with Claude Code skills & agents"
+    echo ""
+    echo -e "${BOLD}Usage:${NC}"
+    echo -e "  claude-kit init [name]    Create a new project with claude-kit submodule"
+    echo -e "  claude-kit update         Update the .claude-kit submodule to latest"
+    echo -e "  claude-kit list           Show available skills, agents, hooks, templates"
+    echo -e "  claude-kit help           Show this help"
+    echo -e "  claude-kit version        Show version"
+    echo ""
+    echo -e "${BOLD}Examples:${NC}"
+    echo -e "  ${DIM}claude-kit init my-api${NC}     # Interactive scaffold"
+    echo -e "  ${DIM}claude-kit list${NC}            # Browse the catalog"
+    echo -e "  ${DIM}cd my-project && claude-kit update${NC}  # Pull latest skills"
+    echo ""
+}
+
+# ─── Main ─────────────────────────────────────────────────
+
+case "${1:-help}" in
+    init)    shift; cmd_init "$@" ;;
+    update)  cmd_update ;;
+    list)    cmd_list ;;
+    help|-h|--help) cmd_help ;;
+    version|-v|--version) echo "claude-kit $VERSION" ;;
+    *)       die "Unknown command: $1\nRun 'claude-kit help' for usage." ;;
+esac
