@@ -40,7 +40,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./.claude/hooks/post-edit-remind.sh",
+            "command": "./.claude/hooks/post-edit-remind.sh"
+          },
+          {
+            "type": "command",
+            "command": "./.claude/hooks/post-submodule-sync.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.claude/hooks/post-submodule-sync.sh",
             "timeout": 10
           }
         ]
