@@ -1,7 +1,6 @@
 ---
 name: verify
 description: Run comprehensive pre-PR verification (tests, lint, format, docs sync, security scan, diff review). Use before creating PRs or after significant changes.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob
 user-invocable: true
 ---

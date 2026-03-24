@@ -1,7 +1,6 @@
 ---
 name: website-dev
 description: Develop, build, and preview the project documentation website. Use this for docs updates, site builds, and local preview.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Glob
 ---
 

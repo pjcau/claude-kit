@@ -1,7 +1,6 @@
 ---
 name: lint-check
 description: Run linting and formatting checks via Docker/OrbStack. Use this before commits to ensure code quality, fix style issues, and enforce project standards.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Edit
 ---
 

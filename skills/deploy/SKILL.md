@@ -1,7 +1,6 @@
 ---
 name: deploy
 description: Deploy services using Docker/OrbStack. Use this to build and deploy containers, run health checks, and manage deployments.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Grep
 ---
 

@@ -1,7 +1,6 @@
 ---
 name: fetch-star-repos
 description: Fetch GitHub starred repos, analyze one with LLM, and propose improvements via PR
-disable-model-invocation: true
 allowed-tools: Bash, Read
 user-invocable: true
 ---

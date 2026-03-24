@@ -1,7 +1,6 @@
 ---
 name: ship
 description: Full ship pipeline — run tests, update docs, CI safety checks, commit, and push in one go.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Grep, Glob, Agent
 user-invocable: true
 ---

@@ -1,7 +1,6 @@
 ---
 name: cost-optimization
 description: Review and optimize LLM API costs in the orchestrator. Analyze model routing, budget tracking, prompt caching, and retry logic for cost efficiency.
-disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash
 ---
 

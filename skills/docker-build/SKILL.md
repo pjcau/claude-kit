@@ -1,7 +1,6 @@
 ---
 name: docker-build
 description: Build and manage Docker containers via OrbStack. Use this to build images, run containers, check service health, and manage docker-compose services.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Grep
 ---
 

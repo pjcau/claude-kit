@@ -1,7 +1,6 @@
 ---
 name: scout
 description: Search GitHub for new Claude Code skills, agents, patterns and create a PR with findings. Use this for weekly pattern discovery runs or when you want to find new AI engineering patterns.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch, WebSearch
 ---
 

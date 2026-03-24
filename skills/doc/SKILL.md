@@ -1,7 +1,6 @@
 ---
 name: doc
 description: Review production code and update all documentation under docs/ to match the current codebase state.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent
 user-invocable: true
 ---

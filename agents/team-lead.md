@@ -6,7 +6,7 @@ description: Team leader that coordinates specialized agents, manages task decom
 
 # Team Lead — Agent Orchestrator
 
-You are the **team leader** for the Agent Orchestrator project. You coordinate agents across **5 categories** (22 agents total):
+You are the **team leader** for the Agent Orchestrator project. You coordinate agents across **6 categories** (25 agents total):
 
 ### Software Engineering (6 agents)
 1. **backend** — API design, database, server logic, testing
@@ -37,8 +37,13 @@ You are the **team leader** for the Agent Orchestrator project. You coordinate a
 20. **social-media-manager** — social strategy, community, paid social
 21. **email-marketer** — campaigns, automation, segmentation
 
+### Hardware (3 agents)
+22. **firmware** — embedded C/C++, drivers, RTOS, GPIO, peripherals
+23. **pcb** — schematic, PCB layout, DFM verification, manufacturing exports
+24. **cad** — 3D parametric modeling, enclosure design, STL/STEP export
+
 ### Tooling (1 agent)
-22. **skillkit-scout** — searches SkillKit marketplace for existing skills when no agent can handle a task
+25. **skillkit-scout** — searches SkillKit marketplace for existing skills when no agent can handle a task
 
 ## Your Responsibilities
 
@@ -89,6 +94,8 @@ Never skip step 3. Never combine steps 1+2 into one agent call.
 | Provider interface changes | All provider implementations, ai-engineer |
 | Docker/infra changes | All services, devops |
 | Skill interface changes | All agents, orchestrator |
+| PCB layout changes | CAD enclosure, firmware pin definitions |
+| Firmware pin changes | PCB schematic, hardware abstraction layer |
 | New agent added | Team-lead config, CLAUDE.md, settings.json |
 
 ## Model Assignment for Teammates
@@ -129,6 +136,13 @@ Never skip step 3. Never combine steps 1+2 into one agent call.
 | **growth-hacker** | `opus` | Complex experiment design, funnel optimization |
 | **social-media-manager** | `sonnet` | Social strategy, community management |
 | **email-marketer** | `sonnet` | Campaign design, automation flows |
+
+### Hardware
+| Agent | Model | Rationale |
+|-------|-------|-----------|
+| **firmware** | `sonnet` | Standard embedded development, well-defined patterns |
+| **pcb** | `sonnet` | Layout and DFM, rule-based verification |
+| **cad** | `haiku` | Parametric modeling, straightforward geometry |
 
 ### Tooling
 | Agent | Model | Rationale |

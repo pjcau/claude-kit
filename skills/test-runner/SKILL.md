@@ -1,7 +1,6 @@
 ---
 name: test-runner
 description: Run the project test suite via Docker/OrbStack. Use this after code changes to verify correctness, run specific test files, or check coverage.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Grep
 ---
 

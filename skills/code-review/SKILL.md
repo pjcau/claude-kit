@@ -1,7 +1,6 @@
 ---
 name: code-review
 description: Review code changes for quality, security, and correctness. Use this before merging PRs, after significant refactors, or when reviewing agent output.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

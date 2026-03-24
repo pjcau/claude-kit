@@ -1,7 +1,6 @@
 ---
 name: feature
 description: End-to-end feature development — implement, iterate with user feedback, test, SOLID review, document, commit & push. Use when building a new feature or making a significant code change that needs quality assurance.
-disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent, AskUserQuestion
 user-invocable: true
 argument-hint: <feature description>
